@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XSS Games</title>
+<style>
+header {
+  background-color: #333;
+  color: white;
+  text-align: center;
+  padding: 10px;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 32px;
+}
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f5f5f5;
+  margin: 0;
+  padding: 0;
+}
+
+.quiz-container {
+  display: flex;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 20px auto;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.question-list {
+  flex: 1;
+  padding: 20px;
+  border-right: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+.question-list h2 {
+  font-size: 24px;
+  margin: 0 0 10px;
+}
+
+.question-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.question-list li {
+  padding: 10px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.question-list li:hover {
+  background-color: #e0e0e0;
+}
+
+.question-content {
+  flex: 3;
+  padding: 20px;
+  background-color: #fdfdfd;
+}
+
+.question-content h3 {
+  font-size: 24px;
+  margin: 0 0 20px;
+}
+
+.question-content pre {
+  font-family: monospace;
+  background-color: #f5f5f5;
+  padding: 10px;
+  border-radius: 5px;
+  overflow: auto;
+}
+
+.question-content label {
+  font-weight: bold;
+}
+
+.question-content input[type="text"] {
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.question-content #outputField {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #f5f5f5;
+  min-height: 50px;
+  overflow: auto;
+}
+
+.question-content strong {
+  color: green;
+}
+
+
+
+</style>
+</head>
+<body>
+  <header>
+    <h1>Escape If You Can</h1>
+  </header>
+<div class="quiz-container">
+  <div class="question-list">
+    <h2>Challenges</h2>
+    <ul>
+      <li onclick="showQuestion(1)">Warmup</li>
+      <li onclick="showQuestion(2)">Adobe</li>
+      <li onclick="showQuestion(3)">JSON</li>
+      <li onclick="showQuestion(4)">Markdown</li>
+      <li onclick="showQuestion(5)">DOM</li>
+      <li onclick="showQuestion(6)">Callback</li>
+      <li onclick="showQuestion(7)">JS-FAWK</li>
+      <li onclick="showQuestion(8)">JSON 2</li>
+    </ul>
+  </div>
+  <div class="question-content" id="questionContent">
+    <!-- Question and options will appear here -->
+  </div>
+</div>
+
+<script>
+var escapeFunctions = [
+  function defaultEscape(s) {
+    return '<script>console.log(' + s + ');<\/script>';
+  },
+  function escapeFunction1(s){
+    s = s.replace(/"/g, '\\"');
+    return '<script>console.log("' + s + '");<\/script>';
+  }
+];
+var questions = [
+  {
+    question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+    code: '<pre>function escape(s) {\n  return \'&lt;script&gt;console.log("\' + s + \'");&lt;/script&gt;\';\n}</pre>',
+    escapeFunctionIndex: 0
+  },
+  {
+    question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>?",
+    code: '<pre>function escape(s) {\n  s = s.replace(/"/g, \'"\');\n  return \'&lt;script&gt;console.log("\' + s + \'");&lt;/script&gt;\';\n}</pre>',
+    escapeFunctionIndex: 1
+  },
+  {
+    question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+    code: '<pre>function escape(s) {\n  s = JSON.stringify(s);\n  return \'&lt;script&gt;console.log("\' + s + \'");&lt;/script&gt;\';\n}</pre>',
+    escapeFunctionIndex: 0
+  },
+  {
+    question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+    code: '<pre>function escape(s) {\n  var text = s.replace(/</g, \'&lt;\').replace(/"/g, \'&quot;\');\n  // URLs\n  text = text.replace(/(http:\\/\\/\\S+)/g, \'<a href="$1">$1</a>\');\n  // [[img123|Description]]\n  text = text.replace(/\\[\\[(\\w+)\\|(.+?)\\]\\]/g, \'&lt;img alt="$2" src="$1.gif"&gt;\');\n  return text;\n}</pre></pre>',
+    escapeFunctionIndex: 0
+  },
+  {
+    question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+    code: '<pre>function escape(s) {\n  // Slightly too lazy to make two input fields.\n  // Pass in something like "TextNode#foo"\n  var m = s.split(/#/);\n\n  // Only slightly contrived at this point.\n  var a = document.createElement(\'div\');\n  a.appendChild(document[\'create\'+m[0]].apply(document, m.slice(1)));\n  return a.innerHTML;\n}</pre>',
+      escapeFunctionIndex: 0
+  },
+
+    {
+      question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+      code: 'function escape(s) {\n' +
+        '  // Pass in "callback#userdata"\n' +
+        '  var thing = s.split(/#/);\n\n' +
+        '  if (!/^[a-zA-Z\\[\\]\'\\*]*$/.test(thing[0])) return \'Invalid callback\';\n' +
+        '  var obj = {\'userdata\': thing[1] };\n' +
+        '  var json = JSON.stringify(obj).replace(/&lt;/g, \'\\\\u003c\');\n' +
+        '  return \"&lt;script&gt;" + thing[0] + "(" + json +")&lt;/script&gt;\";\n' +
+        '}',
+        escapeFunctionIndex: 0
+    },
+    {
+      question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+      code: '<pre>function escape(s) {\n  return \'&lt;script&gt;console.log("\' + s.toUpperCase() + \'");&lt;/script&gt;\';\n}</pre>',
+      escapeFunctionIndex: 0
+    },
+    {
+      question: "The code below generates HTML in an unsafe way. Prove it by calling <code>alert(1)</code>",
+      code: '<pre>function escape(s) {\n  s = JSON.stringify(s).replace(/<\\/script/gi, \'\');\n\n  return \'&lt;script&gt;console.log(\' + s + \');&lt;/script&gt;\';\n}</pre>',
+      escapeFunctionIndex: 0
+    },
+];
+
+var questionIndex = 0;
+function showQuestion(questionIndex) {
+  var question = questions[questionIndex - 1];
+  var questionContent = document.getElementById("questionContent");
+  questionContent.innerHTML = `
+  <h3>${question.question}</h3>
+  <pre>${question.code}</pre>
+  <label for="inputField">Input:</label>
+  <input type="text" id="inputField" oninput="updateOutput(this.value, ${question.escapeFunctionIndex})">
+  <br />
+  <label for="outputField">Output:</label>
+  <div id="outputField"></div>
+  `;
+}
+
+function updateOutput(inputValue, escapeFunctionIndex) {
+  var outputField = document.getElementById("outputField");
+  var escapedFunction = escapeFunctions[escapeFunctionIndex];
+  var escapedValue = escapedFunction(inputValue);
+
+  console.log(`${escapedValue}`);
+
+  escapedValue = escapedValue.replace(/<\/?script>/g, '');
+  console.log(`${escapedValue}`);
+  outputField.innerHTML = `${escapedValue}`;
+  eval(`${escapedValue}`);
+  // // Check if alert(1) was triggered
+}
+</script>
+</body>
+</html>
